@@ -31,8 +31,13 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+        if (userRepository.existsByUsername(user.getUsername())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
+        }
+        
+        if (user.getRole() == null) {
+        	user.setRole(User.Role.USER);
+
         }
         user.setPassword(passwordEncoder.encode(user.getPassword())); // Encrypt password before saving
         userRepository.save(user);
@@ -41,10 +46,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody User user) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
-        );
-
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
         String token = jwtUtil.generateToken(user.getUsername());
         return ResponseEntity.ok(Map.of("token", token));
     }

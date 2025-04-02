@@ -28,9 +28,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse respond, FilterChain filterChain) throws ServletException, IOException {
 		
+		System.out.println("Scearching JwtAuthenticationFilter triggered for: " + request.getServletPath());
+		
+		if (request.getServletPath().startsWith("/api/auth/signup") || request.getServletPath().startsWith("/api/auth/login")) {
+	        System.out.println("Skipping JWT filter for: " + request.getServletPath());
+	        filterChain.doFilter(request, respond);
+	        return;
+	    }
+
+		 
+		 
 		String token = extractToken(request);
 		if (token != null && jwtUtil.validateToken(token)) {	
-			 String username = jwtUtil.getUsernameFromToken(token);  // Retrieves the username from the token payload
+			String username = jwtUtil.getUsernameFromToken(token);  // Retrieves the username from the token payload
+			 
+			 System.out.println("Token is valid for user: " + username);
+
 			 UserDetails userDetails = userDetailsService.loadUserByUsername(username); //Fetches user details from the database.
 			 
 			 //Spring Security uses an Authentication object to track the logged-in user
@@ -40,7 +53,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			 //Spring Security uses SecurityContext to keep track of the current logged-in user.
 			 //This makes sure the user is recognized for the rest of the request
 			 SecurityContextHolder.getContext().setAuthentication(authentication);
-		}
+		} else {
+	        System.out.println("Token is invalid or missing.");
+	    }
 		
 		// Continue with the filter chain
 		filterChain.doFilter(request, respond);
@@ -48,6 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	
 	private String extractToken(HttpServletRequest request) {
 		String authHeader = request.getHeader("Authorization");
+		//System.out.println("Extracted JWT: " + extractToken(request));
 		if(authHeader != null && authHeader.startsWith("Bearer "))
 			return authHeader.substring(7);
 		else
